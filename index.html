@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Planning">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1E3A5F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Planning Contrôleurs</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f0f2f5;font-size:13px;color:#1a1a2e;}
+
+/* TOP BAR */
+.topbar{background:#1E3A5F;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;}
+.topbar-left{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.tbtn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.tbtn:hover{background:rgba(255,255,255,0.25);}
+.tbtn.green{background:#2ECC71;border-color:#27AE60;}
+.tbtn.blue{background:#3498DB;border-color:#2980B9;}
+.tbtn.orange{background:#E67E22;border-color:#D35400;}
+.week-nav{display:flex;align-items:center;gap:8px;}
+.week-label{color:#FFD60A;font-weight:700;font-size:14px;white-space:nowrap;}
+
+/* LÉGENDE */
+.legend-bar{background:#fff;padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:2px solid #E5E5EA;}
+.legend-bar span{font-weight:700;font-size:12px;color:#555;}
+.leg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;cursor:pointer;padding:3px 8px;border-radius:4px;}
+.leg-box{width:16px;height:16px;border-radius:3px;display:inline-block;flex-shrink:0;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:12px;}
+table{border-collapse:collapse;background:#fff;width:100%;min-width:700px;box-shadow:0 2px 8px rgba(0,0,0,0.1);border-radius:8px;overflow:hidden;}
+
+/* HEADER */
+.th-ctrl{background:#1E3A5F;color:#fff;font-size:12px;font-weight:700;padding:10px 12px;text-align:center;min-width:140px;}
+.th-day{background:#1E3A5F;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:6px;border-left:2px solid rgba(255,255,255,0.2);}
+.th-day-date{font-size:10px;font-weight:400;opacity:0.8;}
+.th-sub{background:#2C5080;color:#fff;font-size:10px;font-weight:600;text-align:center;padding:5px 4px;border-left:1px solid rgba(255,255,255,0.15);}
+.th-sub.am{background:#2980B9;}
+.th-sub.pm{background:#1A6090;}
+
+/* ROWS */
+.td-name{background:#F8F9FA;font-size:12px;font-weight:600;color:#1E3A5F;padding:8px 10px;border-bottom:1px solid #E5E5EA;white-space:nowrap;border-right:2px solid #ddd;}
+.td-cell{border:1px solid #E8EAF0;text-align:center;height:36px;min-width:55px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;transition:opacity 0.15s;position:relative;}
+.td-cell:hover{opacity:0.8;}
+.td-cell.empty{background:#FAFAFA;color:#ccc;}
+.td-cell.empty:hover{background:#F0F0F0;}
+.td-cell.border-day{border-left:2px solid #CCC;}
+
+/* WEEKEND — Samedi ouvert comme les autres jours */
+.td-name.we{color:#1E3A5F;}
+.th-day.we{background:#1E6B3A;}
+.th-sub.we-am{background:#27AE60;}
+.th-sub.we-pm{background:#1E8A4A;}
+
+/* TOTAUX */
+.total-section{padding:12px 14px 14px;}
+.total-title{font-size:12px;font-weight:700;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.total-cards{display:flex;flex-wrap:wrap;gap:10px;}
+.total-card{border-radius:8px;padding:10px 14px;color:#fff;min-width:90px;text-align:center;}
+.total-card .tc-label{font-size:11px;font-weight:700;opacity:0.85;margin-bottom:6px;}
+.total-card .tc-row{display:flex;gap:12px;justify-content:center;}
+.total-card .tc-val{text-align:center;}
+.total-card .tc-num{font-size:20px;font-weight:800;line-height:1;}
+.total-card .tc-sub{font-size:9px;font-weight:600;opacity:0.7;margin-top:2px;}
+
+/* MODAL */
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:500;display:none;align-items:flex-end;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:2px;color:#1E3A5F;}
+.modal p{font-size:12px;color:#888;margin-bottom:16px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.modal-opt{padding:14px 10px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;text-align:center;}
+.modal-clear{margin-top:8px;width:100%;padding:13px;background:#F2F2F7;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:#FF3B30;}
+.modal-cancel{margin-top:6px;width:100%;padding:13px;background:#F2F2F7;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:#666;}
+
+@media print{
+  .topbar,.legend-bar,.total-section,.modal-bg{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .tbtn{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="tbtn" onclick="changeWeek(-1)">◀ Préc</button>
+    <div class="week-label" id="weekLabel"></div>
+    <button class="tbtn" onclick="changeWeek(1)">Suiv ▶</button>
+    <button class="tbtn" onclick="goToday()">Aujourd'hui</button>
+  </div>
+  <div class="topbar-left">
+    <button class="tbtn" onclick="clearWeek()">🗑 Vider la semaine</button>
+    <button class="tbtn green" onclick="partagerImage()">🖼 Partager</button>
+    <button class="tbtn" style="background:#25D366;border-color:#1ebe57;" onclick="whatsAppImage()">📱 WhatsApp</button>
+    <button class="tbtn green" onclick="sendMail()">✉ Mail</button>
+    <button class="tbtn blue" onclick="exportCSV()">↓ CSV</button>
+    <button class="tbtn orange" onclick="window.print()">🖨 Imprimer</button>
+  </div>
+</div>
+
+<!-- LÉGENDE -->
+<div class="legend-bar">
+  <span>Légende :</span>
+  <div id="legendItems"></div>
+</div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+  <table id="planTable"></table>
+</div>
+
+<!-- TOTAUX -->
+<div class="total-section">
+  <div class="total-title">Totaux de la semaine</div>
+  <div class="total-cards" id="totalCards"></div>
+  <div id="totalHeures"></div>
+</div>
+
+<!-- MODAL WHATSAPP -->
+<div class="modal-bg" id="waBg" style="display:none;align-items:flex-end;">
+  <div class="modal" style="text-align:center;">
+    <h3 style="color:#25D366;font-size:18px;margin-bottom:4px;">📱 Envoyer sur WhatsApp</h3>
+    <p style="color:#888;font-size:12px;margin-bottom:14px;">Appuyez longuement sur l'image → <b>Enregistrer</b> → ouvrez WhatsApp</p>
+    <img id="waImg" style="width:100%;border-radius:10px;border:2px solid #E5E5EA;margin-bottom:14px;">
+    <button onclick="sauvegarderWA()" style="width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">⬇ Télécharger l'image</button>
+    <button onclick="ouvrirWA()" style="width:100%;padding:14px;background:#1E3A5F;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">📱 Ouvrir WhatsApp</button>
+    <button onclick="closeWA()" style="width:100%;padding:12px;background:#F2F2F7;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;color:#666;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <p id="modalSub"></p>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Horaires rapides</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;" id="heuresRapides"></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Horaire personnalisé</label>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <input id="modalHeure" type="text" placeholder="ex: 8h00-12h00" maxlength="20"
+          style="flex:1;padding:11px 12px;border:2px solid #E5E5EA;border-radius:10px;font-size:14px;font-weight:600;color:#1E3A5F;outline:none;"
+          onkeydown="if(event.key==='Enter')assignHeure()">
+        <button onclick="assignHeure()" style="background:#1E3A5F;color:#fff;border:none;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">✓</button>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Lieu / Statut (+ horaires si remplis)</div>
+    <div class="modal-grid" id="modalGrid"></div>
+    <button class="modal-clear" onclick="assign('')">✕ Effacer la case</button>
+    <button class="modal-cancel" onclick="closeModal()">Annuler</button>
+  </div>
+</div>
+
+<script>
+const CONTROLEURS = [
+  'Hervé Hurtado',
+  'Eric Esteves',
+  'Diego Albino',
+  'Flavien Larroque',
+  'Antoine Veyrenc de Lavalette',
+  'Damien Andrieux',
+  'David Marinho',
+  'Carole Amiot',
+  'Martine Gayou',
+];
+
+const CODES = [
+  {code:'BOU', label:'BOUSSENS',  color:'#27AE60'},
+  {code:'CAZ', label:'CAZERES',   color:'#2980B9'},
+  {code:'MAN', label:'MANE',      color:'#E67E22'},
+  {code:'STM', label:'ST MARCET', color:'#8E44AD'},
+  {code:'CON', label:'CONGES',    color:'#C0392B'},
+  {code:'REP', label:'REPOS',     color:'#7F8C8D'},
+  {code:'RES', label:'RESERV',    color:'#2C3E50'},
+  {code:'STA', label:'STAGE',     color:'#16A085'},
+];
+
+const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+let planning = {};
+let currentMonday = getMonday(new Date());
+let selectedKey = null;
+
+let HORAIRES_RAPIDES = [
+  '8h00-12h00',
+  '14h00-18h00',
+  '9h00-13h00',
+  '13h00-18h00',
+];
+
+function chargerHoraires(){
+  fetch('/api/horaires')
+    .then(r=>r.json())
+    .then(data=>{ if(data&&data.length) HORAIRES_RAPIDES=data; })
+    .catch(()=>{
+      try{
+        const s=localStorage.getItem('horaires_rapides');
+        if(s) HORAIRES_RAPIDES=JSON.parse(s);
+      }catch(e){}
+    });
+}
+
+function sauvegarderHoraires(){
+  try{ localStorage.setItem('horaires_rapides', JSON.stringify(HORAIRES_RAPIDES)); }catch(e){}
+  fetch('/api/horaires',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(HORAIRES_RAPIDES)
+  }).catch(()=>{});
+}
+
+function renderHeuresRapides(){
+  const el=document.getElementById('heuresRapides');
+  if(!el) return;
+  el.innerHTML=HORAIRES_RAPIDES.map((h,i)=>
+    `<div style="display:flex;gap:4px;">
+      <button onclick="selHeure('${h}')"
+        style="flex:1;padding:10px 6px;background:#E8F4FD;border:2px solid #2980B9;border-radius:8px;font-size:12px;font-weight:700;color:#1E3A5F;cursor:pointer;text-align:center;">
+        ⏰ ${h}
+      </button>
+      <button onclick="modifierHeure(${i})"
+        style="padding:10px 8px;background:#F2F2F7;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✏️</button>
+    </div>`
+  ).join('');
+}
+
+function selHeure(h){
+  document.getElementById('modalHeure').value=h;
+}
+
+function modifierHeure(i){
+  const nouvel=prompt('Modifier cet horaire :', HORAIRES_RAPIDES[i]);
+  if(nouvel && nouvel.trim()){
+    HORAIRES_RAPIDES[i]=nouvel.trim();
+    sauvegarderHoraires();
+    renderHeuresRapides();
+  }
+}
+
+function getMonday(d){
+  const dt = new Date(d);
+  const day = dt.getDay();
+  const diff = (day===0)?-6:1-day;
+  dt.setDate(dt.getDate()+diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+
+function fmt(d){ return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); }
+function fmtKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function getWeekNum(d){
+  const jan1=new Date(d.getFullYear(),0,1);
+  return Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+}
+
+function changeWeek(dir){ currentMonday=addDays(currentMonday,dir*7); render(); }
+function goToday(){ currentMonday=getMonday(new Date()); render(); }
+
+function clearWeek(){
+  if(!confirm('Vider tout le planning de cette semaine ?')) return;
+  const keys=Object.keys(planning);
+  for(let i=0;i<6;i++){
+    const d=addDays(currentMonday,i);
+    const dk=fmtKey(d);
+    keys.filter(k=>k.includes('_'+dk+'_')).forEach(k=>delete planning[k]);
+  }
+  sauvegarder();
+  render();
+}
+
+function getCode(ctrl,date,slot){
+  return planning[ctrl+'_'+fmtKey(date)+'_'+slot]||'';
+}
+
+function render(){
+  const mon=currentMonday;
+  const sat=addDays(mon,5);
+  const wn=getWeekNum(mon);
+  document.getElementById('weekLabel').textContent=
+    'Semaine '+wn+' — du '+fmt(mon)+' au '+fmt(sat);
+
+  renderLegend();
+  renderTable();
+  renderTotals();
+}
+
+function renderLegend(){
+  document.getElementById('legendItems').innerHTML=CODES.map(c=>
+    `<span class="leg"><span class="leg-box" style="background:${c.color}"></span>${c.label}</span>`
+  ).join('');
+}
+
+function renderTable(){
+  let html='<thead><tr>';
+  html+=`<th class="th-ctrl" rowspan="2">CONTRÔLEUR</th>`;
+  for(let i=0;i<6;i++){
+    const d=addDays(currentMonday,i);
+    const isWE=(i>=5);
+    html+=`<th class="th-day${isWE?' we':''}" colspan="2">${DAYS[i]}<br><span class="th-day-date">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</span></th>`;
+  }
+  html+='</tr><tr>';
+  for(let i=0;i<6;i++){
+    const isWE=(i>=5);
+    html+=`<th class="th-sub ${isWE?'we-am':'am'}">MATIN</th><th class="th-sub ${isWE?'we-pm':'pm'}">A-MIDI</th>`;
+  }
+  html+='</tr></thead><tbody>';
+
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    html+=`<tr><td class="td-name">${ctrl}</td>`;
+    for(let i=0;i<6;i++){
+      const d=addDays(currentMonday,i);
+      const isWE=(i>=5);
+      ['am','pm'].forEach(slot=>{
+        const val=getCode(ci,d,slot);
+        const isEmpty=!val;
+        let code=val, heure='';
+        if(val&&val.includes('|')){ const p=val.split('|'); code=p[0]; heure=p[1]; }
+        const cobj=CODES.find(c=>c.code===code);
+        const isCode=!!cobj;
+        const bg=cobj?cobj.color:'';
+        let styleStr, txt;
+        if(isEmpty){
+          styleStr=''; txt='—';
+        } else if(isCode){
+          styleStr=`background:${bg};`;
+          txt=heure
+            ?`<span style="display:block;font-size:11px;font-weight:800;">${cobj.label}</span><span style="display:block;font-size:9px;font-weight:600;opacity:0.9;">${heure}</span>`
+            :`<span>${cobj.label}</span>`;
+        } else {
+          styleStr='background:#FFF9E6;color:#1E3A5F;font-size:10px;font-weight:700;';
+          txt=val;
+        }
+        html+=`<td class="td-cell${isEmpty?' empty':''}${slot==='am'?' border-day':''}"
+          style="${styleStr}line-height:1.2;"
+          onclick="openModal(${ci},'${fmtKey(d)}','${slot}','${ctrl.replace(/'/g,"\\'")}','${DAYS[i]} ${d.getDate()} ${MONTHS_FULL[d.getMonth()]}','${slot==='am'?'Matin':'Après-midi'}')">${txt}</td>`;
+      });
+    }
+    html+='</tr>';
+  });
+
+  html+='</tbody>';
+  document.getElementById('planTable').innerHTML=html;
+}
+
+function parseMinutes(heure){
+  if(!heure) return 0;
+  // normalise les séparateurs : ":" → "h", espaces supprimés
+  const s=heure.toLowerCase().replace(/:/g,'h').replace(/\s/g,'');
+  // cherche tous les tokens de type "8h00", "14h30", "8h", "14"
+  const tokens=s.match(/\d{1,2}h\d{0,2}/g);
+  if(!tokens||tokens.length<2) return 0;
+  function toMins(t){
+    const m=t.match(/(\d+)h(\d*)/);
+    if(!m) return 0;
+    const mins=m[2]?parseInt(m[2].padEnd(2,'0'))||0:0;
+    return parseInt(m[1])*60+mins;
+  }
+  const start=toMins(tokens[0]);
+  const end=toMins(tokens[tokens.length-1]);
+  return Math.max(0,end-start);
+}
+
+function fmtMinutes(mins){
+  if(!mins||mins<=0) return '0h00';
+  return Math.floor(mins/60)+'h'+(mins%60).toString().padStart(2,'0');
+}
+
+function extractHeure(val){
+  if(!val) return '';
+  if(val.includes('|')) return val.split('|')[1]||'';
+  if(!CODES.some(c=>c.code===val)) return val;
+  return '';
+}
+
+function renderTotals(){
+  const totals={};
+  CODES.forEach(c=>{ totals[c.code]={am:0,pm:0}; });
+  const heuresCtrl=CONTROLEURS.map(()=>0); // minutes per contrôleur
+  let heuresTotal=0;
+
+  for(let i=0;i<6;i++){
+    const d=addDays(currentMonday,i);
+    CONTROLEURS.forEach((_,ci)=>{
+      ['am','pm'].forEach(slot=>{
+        const val=getCode(ci,d,slot);
+        if(!val) return;
+        let code=val;
+        if(val.includes('|')) code=val.split('|')[0];
+        if(totals[code]) totals[code][slot]++;
+        const heure=extractHeure(val);
+        const mins=parseMinutes(heure);
+        heuresCtrl[ci]+=mins;
+        heuresTotal+=mins;
+      });
+    });
+  }
+
+  // Lieux cards
+  const lieuHtml=CODES.map(c=>{
+    const t=totals[c.code];
+    if(t.am===0&&t.pm===0) return '';
+    return `<div class="total-card" style="background:${c.color}">
+      <div class="tc-label">${c.label}</div>
+      <div class="tc-row">
+        <div class="tc-val"><div class="tc-num">${t.am}</div><div class="tc-sub">MATIN</div></div>
+        <div class="tc-val"><div class="tc-num">${t.pm}</div><div class="tc-sub">A-MIDI</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('totalCards').innerHTML=lieuHtml||'<span style="color:#999;font-size:13px">Aucune affectation cette semaine</span>';
+
+  // Heures par contrôleur — toujours affichées
+  let heuresHtml=`<div style="margin-top:16px;">
+    <div class="total-title">Heures par contrôleur</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">`;
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    const mins=heuresCtrl[ci]||0;
+    const prenom=ctrl.split(' ')[0];
+    const nom=ctrl.split(' ').slice(1).join(' ');
+    heuresHtml+=`<div style="background:#1E3A5F;color:#fff;border-radius:10px;padding:12px 16px;min-width:110px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.3px;margin-bottom:2px;">${prenom.toUpperCase()}</div>
+      <div style="font-size:10px;font-weight:500;opacity:0.6;margin-bottom:8px;">${nom.toUpperCase()}</div>
+      <div style="font-size:28px;font-weight:900;line-height:1;color:${mins>0?'#FFD60A':'rgba(255,255,255,0.3)'};">${fmtMinutes(mins)}</div>
+      <div style="font-size:9px;font-weight:600;opacity:0.6;margin-top:4px;">cette semaine</div>
+    </div>`;
+  });
+  heuresHtml+=`</div>`;
+  if(heuresTotal>0){
+    heuresHtml+=`<div style="background:#FFD60A;color:#1E3A5F;border-radius:10px;padding:14px 20px;display:inline-flex;align-items:center;gap:16px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+      <span style="font-size:13px;font-weight:700;">TOTAL ÉQUIPE</span>
+      <span style="font-size:30px;font-weight:900;">${fmtMinutes(heuresTotal)}</span>
+    </div>`;
+  }
+  heuresHtml+=`</div>`;
+  document.getElementById('totalHeures').innerHTML=heuresHtml;
+}
+
+function openModal(ci,dateKey,slot,name,dayStr,slotStr){
+  document.getElementById('modalTitle').textContent=name;
+  document.getElementById('modalSub').textContent=dayStr+' · '+slotStr;
+  selectedKey=ci+'_'+dateKey+'_'+slot;
+  const cur=planning[selectedKey]||'';
+  let curCode=cur, curHeure='';
+  if(cur.includes('|')){ const p=cur.split('|'); curCode=p[0]; curHeure=p[1]; }
+  const isCode=CODES.some(c=>c.code===curCode);
+  document.getElementById('modalHeure').value=isCode?curHeure:cur;
+  document.getElementById('modalGrid').innerHTML=CODES.map(c=>
+    `<button class="modal-opt" style="background:${c.color}" onclick="assignWithHeure('${c.code}')">${c.label}</button>`
+  ).join('');
+  renderHeuresRapides();
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(()=>document.getElementById('modalHeure').focus(),100);
+}
+
+function assign(code){
+  if(selectedKey){
+    if(code) planning[selectedKey]=code;
+    else delete planning[selectedKey];
+  }
+  sauvegarder();
+  closeModal();
+  render();
+}
+
+function assignWithHeure(code){
+  const heure=document.getElementById('modalHeure').value.trim();
+  const val=heure?code+'|'+heure:code;
+  if(selectedKey) planning[selectedKey]=val;
+  sauvegarder();
+  closeModal();
+  render();
+}
+
+function assignHeure(){
+  const val=document.getElementById('modalHeure').value.trim();
+  if(!val) return;
+  if(selectedKey) planning[selectedKey]=val;
+  sauvegarder();
+  closeModal();
+  render();
+}
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('open');
+  selectedKey=null;
+}
+
+document.getElementById('modalBg').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+
+const JSONBIN_ID='6a576c5ff5f4af5e2992198e';
+const JSONBIN_URL='https://api.jsonbin.io/v3/b/'+JSONBIN_ID;
+const JSONBIN_KEY='$2a$10$viY4ZAnR24fGUs.3xGgc1.L48Wjxhcggeh0Pt/X8c1u/QGuLhUEue';
+
+function sauvegarder(){
+  // 1. localStorage EN PREMIER (immédiat, toujours)
+  try{ localStorage.setItem('planning_ctrl', JSON.stringify(planning)); }catch(e){}
+  // 2. Cloud JSONBin (sync Mac ↔ iPhone partout dans le monde, 24h/24)
+  fetch(JSONBIN_URL,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+    body:JSON.stringify(planning)
+  }).catch(()=>{});
+  showSaved();
+}
+
+function showSaved(){
+  let el=document.getElementById('savedBadge');
+  if(!el){
+    el=document.createElement('div');
+    el.id='savedBadge';
+    el.style.cssText='position:fixed;bottom:16px;right:16px;background:#27AE60;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;transition:opacity 0.5s;';
+    document.body.appendChild(el);
+  }
+  el.textContent='✓ Sauvegardé';
+  el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{ el.style.opacity='0'; },2000);
+}
+
+function charger(){
+  // 1. Affiche localStorage immédiatement
+  try{
+    const s=localStorage.getItem('planning_ctrl');
+    if(s) planning=JSON.parse(s)||{};
+  }catch(e){ planning={}; }
+  render();
+
+  // 2. Charge depuis le cloud (priorité — données toujours à jour)
+  fetch(JSONBIN_URL+'/latest',{headers:{'Accept':'application/json'}})
+    .then(r=>{ if(!r.ok) throw new Error('cloud indisponible'); return r.json(); })
+    .then(res=>{
+      const data=res&&res.record;
+      if(data && !data.error && Object.keys(data).length>0){
+        planning=data;
+        try{ localStorage.setItem('planning_ctrl', JSON.stringify(planning)); }catch(e){}
+        render();
+      }
+    })
+    .catch(()=>{
+      // Cloud indisponible → essaie serveur local
+      fetch('/api/planning')
+        .then(r=>r.json())
+        .then(data=>{ if(data&&Object.keys(data).length>0){ planning=data; render(); }})
+        .catch(()=>{});
+    });
+}
+
+function exportCSV(){
+  let csv='Contrôleur';
+  for(let i=0;i<6;i++){
+    const d=addDays(currentMonday,i);
+    csv+=','+DAYS[i]+' '+fmt(d)+' Matin,'+DAYS[i]+' '+fmt(d)+' A-Midi';
+  }
+  csv+='\n';
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    csv+='"'+ctrl+'"';
+    for(let i=0;i<6;i++){
+      const d=addDays(currentMonday,i);
+      csv+=','+(getCode(ci,d,'am')||'')+','+(getCode(ci,d,'pm')||'');
+    }
+    csv+='\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='planning_semaine.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function partagerImage(){
+  genererCanvasWA(function(blob,wn){
+    const file=new File([blob],'planning_semaine_'+wn+'.png',{type:'image/png'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file], title:'Planning Semaine '+wn}).catch(()=>{});
+    } else {
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='planning_semaine_'+wn+'.png'; a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+}
+
+function padR(s,n){ s=String(s); return s+' '.repeat(Math.max(0,n-s.length)); }
+
+function buildTexte(){
+  const mon=currentMonday;
+  const sat=addDays(mon,5);
+  const wn=getWeekNum(mon);
+  let t='📋 PLANNING CONTRÔLEURS\n';
+  t+='Semaine '+wn+' — du '+fmt(mon)+' au '+fmt(sat)+'\n';
+  t+='═══════════════════════════════════\n\n';
+
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    let lignes=[];
+    for(let i=0;i<6;i++){
+      const d=addDays(currentMonday,i);
+      const am=getCode(ci,d,'am');
+      const pm=getCode(ci,d,'pm');
+      if(am||pm){
+        function formatVal(v){
+          if(!v) return '—';
+          let code=v, heure='';
+          if(v.includes('|')){ const p=v.split('|'); code=p[0]; heure=p[1]; }
+          const label=(CODES.find(c=>c.code===code)||{label:code}).label;
+          return label+(heure?' ('+heure+')':'');
+        }
+        lignes.push('  '+DAYS[i]+' '+d.getDate()+'/'+(d.getMonth()+1)+'\n    🌅 Matin : '+formatVal(am)+'\n    🌇 A-midi : '+formatVal(pm));
+      }
+    }
+    if(lignes.length>0){
+      t+='👤 '+ctrl.toUpperCase()+'\n'+lignes.join('\n')+'\n\n';
+    }
+  });
+
+  // Calcul totaux lieux
+  const totals={};
+  CODES.forEach(c=>{ totals[c.code]={am:0,pm:0}; });
+  const heuresCtrl=CONTROLEURS.map(()=>0);
+  let heuresTotal=0;
+  for(let i=0;i<6;i++){
+    const d=addDays(currentMonday,i);
+    CONTROLEURS.forEach((_,ci)=>{
+      ['am','pm'].forEach(slot=>{
+        const val=getCode(ci,d,slot);
+        const code=val&&val.includes('|')?val.split('|')[0]:val;
+        if(code&&totals[code]) totals[code][slot]++;
+        const mins=parseMinutes(extractHeure(val));
+        heuresCtrl[ci]+=mins; heuresTotal+=mins;
+      });
+    });
+  }
+
+  // Totaux lieux
+  t+='\n═══════════════════════════════════\n';
+  t+='📊 TOTAUX DE LA SEMAINE — LIEUX\n';
+  t+='───────────────────────────────────\n';
+  t+=padR('LIEU',12)+'  '+padR('MATIN',6)+'  '+padR('A-MIDI',6)+'  TOTAL\n';
+  t+='─'.repeat(36)+'\n';
+  CODES.forEach(c=>{
+    const tot=totals[c.code];
+    const total=tot.am+tot.pm;
+    if(total>0)
+      t+=padR(c.label,12)+'  '+padR(tot.am,6)+'  '+padR(tot.pm,6)+'  '+total+'\n';
+  });
+
+  // Totaux heures par contrôleur
+  t+='\n═══════════════════════════════════\n';
+  t+='⏱ HEURES EFFECTUÉES PAR CONTRÔLEUR\n';
+  t+='───────────────────────────────────\n';
+  let hasHeures=false;
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    if(heuresCtrl[ci]>0){
+      t+=padR(ctrl,30)+'  '+fmtMinutes(heuresCtrl[ci])+'\n';
+      hasHeures=true;
+    }
+  });
+  if(hasHeures){
+    t+='─'.repeat(36)+'\n';
+    t+=padR('TOTAL ÉQUIPE',30)+'  '+fmtMinutes(heuresTotal)+'\n';
+  } else {
+    t+='Aucun horaire saisi cette semaine\n';
+  }
+
+  return {texte:t, wn:wn};
+}
+
+function partager(){
+  const {texte,wn}=buildTexte();
+  if(navigator.share){
+    navigator.share({title:'Planning Contrôleurs — Semaine '+wn, text:texte}).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(texte).then(()=>alert('Planning copié !'));
+  }
+}
+
+let waBlobUrl=null;
+let waFilename='planning.png';
+
+function closeWA(){ document.getElementById('waBg').style.display='none'; }
+
+function sauvegarderWA(){
+  if(!waBlobUrl) return;
+  const a=document.createElement('a');
+  a.href=waBlobUrl; a.download=waFilename; a.click();
+}
+
+function ouvrirWA(){
+  window.open('whatsapp://','_blank');
+}
+
+function whatsAppImage(){
+  genererCanvasWA(function(blob,wn){
+    waBlobUrl=URL.createObjectURL(blob);
+    waFilename='planning_semaine_'+wn+'.png';
+    document.getElementById('waImg').src=waBlobUrl;
+    document.getElementById('waBg').style.display='flex';
+  });
+}
+
+function genererCanvasWA(cb){
+  const mon=currentMonday;
+  const wn=getWeekNum(mon);
+  const sat=addDays(mon,5);
+  const NB_JOURS=6, COL_NOM=160, COL_CELL=72, ROW_H=40, HEAD_H=56, SUB_H=24, NB_CTRL=CONTROLEURS.length;
+  const W=COL_NOM+NB_JOURS*COL_CELL*2+2;
+  const LIGNES_H=Math.ceil(NB_CTRL/2)*26+50;
+  const H=HEAD_H+SUB_H+NB_CTRL*ROW_H+40+36+LIGNES_H;
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  ctx.fillStyle='#F0F2F5'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#1E3A5F'; ctx.fillRect(0,0,W,36);
+  ctx.fillStyle='#FFD60A'; ctx.font='bold 14px Arial'; ctx.textAlign='center';
+  ctx.fillText('PLANNING CONTRÔLEURS — Semaine '+wn+' — du '+fmt(mon)+' au '+fmt(sat),W/2,23);
+  const TOP=36;
+  ctx.font='bold 11px Arial';
+  for(let i=0;i<NB_JOURS;i++){
+    const d=addDays(mon,i); const x=COL_NOM+i*COL_CELL*2; const isWE=(i>=5);
+    ctx.fillStyle=isWE?'#1E6B3A':'#1E3A5F'; ctx.fillRect(x,TOP,COL_CELL*2,HEAD_H);
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='bold 11px Arial';
+    ctx.fillText(DAYS[i],x+COL_CELL,TOP+20);
+    ctx.font='10px Arial'; ctx.fillText(d.getDate()+' '+MONTHS[d.getMonth()],x+COL_CELL,TOP+36);
+    ctx.fillStyle=isWE?'#27AE60':'#2980B9'; ctx.fillRect(x,TOP+HEAD_H,COL_CELL,SUB_H);
+    ctx.fillStyle=isWE?'#1E8A4A':'#1A6090'; ctx.fillRect(x+COL_CELL,TOP+HEAD_H,COL_CELL,SUB_H);
+    ctx.fillStyle='#fff'; ctx.font='bold 9px Arial';
+    ctx.fillText('MATIN',x+COL_CELL/2,TOP+HEAD_H+15);
+    ctx.fillText('A-MIDI',x+COL_CELL+COL_CELL/2,TOP+HEAD_H+15);
+    ctx.strokeStyle='rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.moveTo(x,TOP); ctx.lineTo(x,TOP+HEAD_H+SUB_H); ctx.stroke();
+  }
+  ctx.fillStyle='#1E3A5F'; ctx.fillRect(0,TOP,COL_NOM,HEAD_H+SUB_H);
+  ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+  ctx.fillText('CONTRÔLEUR',COL_NOM/2,TOP+HEAD_H/2+4);
+
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    const y=TOP+HEAD_H+SUB_H+ci*ROW_H;
+    ctx.fillStyle=ci%2===0?'#F8F9FA':'#FFFFFF'; ctx.fillRect(0,y,COL_NOM,ROW_H);
+    ctx.fillStyle='#1E3A5F'; ctx.font='bold 10px Arial'; ctx.textAlign='left';
+    ctx.fillText(ctrl,8,y+ROW_H/2+4);
+    for(let i=0;i<NB_JOURS;i++){
+      const d=addDays(mon,i);
+      ['am','pm'].forEach((slot,si)=>{
+        const x=COL_NOM+i*COL_CELL*2+si*COL_CELL;
+        const val=getCode(ci,d,slot);
+        let code=val,heure='';
+        if(val&&val.includes('|')){ const p=val.split('|'); code=p[0]; heure=p[1]; }
+        const cobj=CODES.find(c=>c.code===code);
+        ctx.fillStyle=cobj?cobj.color:(ci%2===0?'#F8F9FA':'#FFFFFF');
+        ctx.fillRect(x,y,COL_CELL,ROW_H);
+        if(val){
+          ctx.fillStyle=cobj?'#fff':'#1E3A5F';
+          ctx.font=heure?'bold 9px Arial':'bold 10px Arial'; ctx.textAlign='center';
+          ctx.fillText(cobj?cobj.label:val,x+COL_CELL/2,y+(heure?ROW_H/2:ROW_H/2+4));
+          if(heure){ ctx.font='8px Arial'; ctx.fillText(heure,x+COL_CELL/2,y+ROW_H/2+10); }
+        }
+        ctx.strokeStyle='#E8EAF0'; ctx.strokeRect(x,y,COL_CELL,ROW_H);
+      });
+    }
+    ctx.strokeStyle='#DDD'; ctx.strokeRect(0,y,COL_NOM,ROW_H);
+  });
+
+  // Totaux en bas de l'image
+  const totals={}; CODES.forEach(c=>{ totals[c.code]={am:0,pm:0}; });
+  const heuresCtrl=CONTROLEURS.map(()=>0); let heuresTotal=0;
+  for(let i=0;i<6;i++){
+    const d=addDays(mon,i);
+    CONTROLEURS.forEach((_,ci)=>{
+      ['am','pm'].forEach(slot=>{
+        const val=getCode(ci,d,slot);
+        const code=val&&val.includes('|')?val.split('|')[0]:val;
+        if(code&&totals[code]) totals[code][slot]++;
+        const mins=parseMinutes(extractHeure(val));
+        heuresCtrl[ci]+=mins; heuresTotal+=mins;
+      });
+    });
+  }
+  let bx=4; const bY=TOP+HEAD_H+SUB_H+NB_CTRL*ROW_H+6;
+  CODES.forEach(c=>{
+    const tot=totals[c.code]; if(!tot.am&&!tot.pm) return;
+    ctx.fillStyle=c.color; ctx.fillRect(bx,bY,48,28);
+    ctx.fillStyle='#fff'; ctx.font='bold 8px Arial'; ctx.textAlign='center';
+    ctx.fillText(c.label.slice(0,7),bx+24,bY+10);
+    ctx.font='7px Arial'; ctx.fillText('M:'+tot.am+' S:'+tot.pm,bx+24,bY+22);
+    bx+=52;
+  });
+  // Section heures — fond sombre
+  const hY=bY+34;
+  ctx.fillStyle='#1E3A5F'; ctx.fillRect(0,hY-4,W,H-(hY-4));
+
+  // Titre section
+  ctx.fillStyle='#FFD60A'; ctx.font='bold 10px Arial'; ctx.textAlign='left';
+  ctx.fillText('⏱ HEURES EFFECTUÉES',8,hY+10);
+
+  // Cartes contrôleurs (2 par ligne)
+  const cardW=Math.floor((W-16)/2)-4;
+  CONTROLEURS.forEach((ctrl,ci)=>{
+    const col=ci%2; const row=Math.floor(ci/2);
+    const cx=8+col*(cardW+8); const cy=hY+18+row*26;
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(cx,cy,cardW,22);
+    ctx.fillStyle='#fff'; ctx.font='9px Arial'; ctx.textAlign='left';
+    ctx.fillText(ctrl.split(' ')[0]+' '+ctrl.split(' ')[1],cx+4,cy+10);
+    ctx.fillStyle='#FFD60A'; ctx.font='bold 11px Arial'; ctx.textAlign='right';
+    ctx.fillText(fmtMinutes(heuresCtrl[ci]||0),cx+cardW-4,cy+14);
+  });
+
+  // Total équipe
+  const totalY=hY+18+Math.ceil(CONTROLEURS.length/2)*26+4;
+  ctx.fillStyle='#FFD60A'; ctx.fillRect(8,totalY,W-16,24);
+  ctx.fillStyle='#1E3A5F'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
+  ctx.fillText('TOTAL ÉQUIPE',14,totalY+16);
+  ctx.font='bold 13px Arial'; ctx.textAlign='right';
+  ctx.fillText(fmtMinutes(heuresTotal),W-14,totalY+16);
+
+  canvas.toBlob(function(blob){ cb(blob,wn); },'image/png');
+}
+
+function sendMail(){
+  const {texte,wn}=buildTexte();
+  const subject=encodeURIComponent('Planning Contrôleurs — Semaine '+wn);
+  const bodyEnc=encodeURIComponent(texte);
+  window.location.href='mailto:?subject='+subject+'&body='+bodyEnc;
+}
+
+window.addEventListener('load', function(){
+  chargerHoraires();
+  charger();
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+});
+</script>
+</body>
+</html>
