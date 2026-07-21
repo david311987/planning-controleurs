@@ -52,6 +52,8 @@ table{border-collapse:collapse;background:#fff;width:100%;min-width:700px;box-sh
 .td-cell.empty{background:#FAFAFA;color:#ccc;}
 .td-cell.empty:hover{background:#F0F0F0;}
 .td-cell.border-day{border-left:2px solid #CCC;}
+.td-cell.readonly{cursor:default;}
+.td-cell.readonly:hover{opacity:1;}
 
 /* WEEKEND — Samedi ouvert comme les autres jours */
 .td-name.we{color:#1E3A5F;}
@@ -98,7 +100,8 @@ table{border-collapse:collapse;background:#fff;width:100%;min-width:700px;box-sh
     <button class="tbtn" onclick="goToday()">Aujourd'hui</button>
   </div>
   <div class="topbar-left">
-    <button class="tbtn" onclick="clearWeek()">🗑 Vider la semaine</button>
+    <button class="tbtn" id="btnClear" onclick="clearWeek()" style="display:none;">🗑 Vider la semaine</button>
+    <button class="tbtn" id="adminBtn" onclick="toggleAdmin()"></button>
     <button class="tbtn green" onclick="partagerImage()">🖼 Partager</button>
     <button class="tbtn" style="background:#25D366;border-color:#1ebe57;" onclick="whatsAppImage()">📱 WhatsApp</button>
     <button class="tbtn green" onclick="sendMail()">✉ Mail</button>
@@ -111,6 +114,7 @@ table{border-collapse:collapse;background:#fff;width:100%;min-width:700px;box-sh
 <div class="legend-bar">
   <span>Légende :</span>
   <div id="legendItems"></div>
+  <span id="modeBadge" style="margin-left:auto;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;"></span>
 </div>
 
 <!-- TABLE -->
@@ -194,6 +198,56 @@ let planning = {};
 let currentMonday = getMonday(new Date());
 let selectedKey = null;
 
+const ADMIN_HASH = '338718f00282e111a150f75a199ac997941efa572605ac2583f7ce3136359435';
+let isAdmin = localStorage.getItem('planning_admin')==='true';
+
+async function sha256(txt){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function toggleAdmin(){
+  if(isAdmin){
+    if(!confirm('Repasser en mode lecture seule ?')) return;
+    isAdmin=false;
+    localStorage.setItem('planning_admin','false');
+    renderModeUI();
+    render();
+    return;
+  }
+  const code=prompt('Code admin :');
+  if(code===null) return;
+  const h=await sha256(code.trim());
+  if(h===ADMIN_HASH){
+    isAdmin=true;
+    localStorage.setItem('planning_admin','true');
+    renderModeUI();
+    render();
+  } else {
+    alert('Code incorrect.');
+  }
+}
+
+function renderModeUI(){
+  const btn=document.getElementById('adminBtn');
+  const badge=document.getElementById('modeBadge');
+  const clearBtn=document.getElementById('btnClear');
+  if(!btn||!badge||!clearBtn) return;
+  if(isAdmin){
+    btn.textContent='🔓 Mode Admin';
+    badge.textContent='✏️ MODE ADMIN';
+    badge.style.background='#FFD60A';
+    badge.style.color='#1E3A5F';
+    clearBtn.style.display='';
+  } else {
+    btn.textContent='🔒 Déverrouiller';
+    badge.textContent='👁 LECTURE SEULE';
+    badge.style.background='#E5E5EA';
+    badge.style.color='#555';
+    clearBtn.style.display='none';
+  }
+}
+
 let HORAIRES_RAPIDES = [
   '8h00-12h00',
   '14h00-18h00',
@@ -272,6 +326,7 @@ function changeWeek(dir){ currentMonday=addDays(currentMonday,dir*7); render(); 
 function goToday(){ currentMonday=getMonday(new Date()); render(); }
 
 function clearWeek(){
+  if(!isAdmin){ alert('Mode lecture seule — déverrouille le mode admin pour modifier.'); return; }
   if(!confirm('Vider tout le planning de cette semaine ?')) return;
   const keys=Object.keys(planning);
   for(let i=0;i<6;i++){
@@ -294,6 +349,7 @@ function render(){
   document.getElementById('weekLabel').textContent=
     'Semaine '+wn+' — du '+fmt(mon)+' au '+fmt(sat);
 
+  renderModeUI();
   renderLegend();
   renderTable();
   renderTotals();
@@ -345,7 +401,7 @@ function renderTable(){
           styleStr='background:#FFF9E6;color:#1E3A5F;font-size:10px;font-weight:700;';
           txt=val;
         }
-        html+=`<td class="td-cell${isEmpty?' empty':''}${slot==='am'?' border-day':''}"
+        html+=`<td class="td-cell${isEmpty?' empty':''}${slot==='am'?' border-day':''}${isAdmin?'':' readonly'}"
           style="${styleStr}line-height:1.2;"
           onclick="openModal(${ci},'${fmtKey(d)}','${slot}','${ctrl.replace(/'/g,"\\'")}','${DAYS[i]} ${d.getDate()} ${MONTHS_FULL[d.getMonth()]}','${slot==='am'?'Matin':'Après-midi'}')">${txt}</td>`;
       });
@@ -452,6 +508,7 @@ function renderTotals(){
 }
 
 function openModal(ci,dateKey,slot,name,dayStr,slotStr){
+  if(!isAdmin) return;
   document.getElementById('modalTitle').textContent=name;
   document.getElementById('modalSub').textContent=dayStr+' · '+slotStr;
   selectedKey=ci+'_'+dateKey+'_'+slot;
