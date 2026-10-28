@@ -179,6 +179,16 @@ const CONTROLEURS = [
   'Martine Gayou',
 ];
 
+// Contrôleurs masqués à partir d'une date (semaines dont le lundi >= date).
+// L'historique AVANT la date reste visible. Clé = index dans CONTROLEURS.
+const CONTROLEURS_MASQUES = {
+  1: new Date(2026, 10, 2), // Eric Esteves — masqué à partir du 02/11/2026 (mois 10 = novembre)
+};
+function estMasque(ci){
+  const d = CONTROLEURS_MASQUES[ci];
+  return !!(d && currentMonday >= d);
+}
+
 const CODES = [
   {code:'BOU', label:'BOUSSENS',  color:'#27AE60'},
   {code:'CAZ', label:'CAZERES',   color:'#2980B9'},
@@ -383,6 +393,7 @@ function renderTable(){
   html+='</tr></thead><tbody>';
 
   CONTROLEURS.forEach((ctrl,ci)=>{
+    if(estMasque(ci)) return;
     html+=`<tr><td class="td-name">${ctrl}</td>`;
     for(let i=0;i<6;i++){
       const d=addDays(currentMonday,i);
@@ -492,6 +503,7 @@ function renderTotals(){
     <div class="total-title">Heures par contrôleur</div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">`;
   CONTROLEURS.forEach((ctrl,ci)=>{
+    if(estMasque(ci)) return;
     const mins=heuresCtrl[ci]||0;
     const prenom=ctrl.split(' ')[0];
     const nom=ctrl.split(' ').slice(1).join(' ');
@@ -634,6 +646,7 @@ function exportCSV(){
   }
   csv+='\n';
   CONTROLEURS.forEach((ctrl,ci)=>{
+    if(estMasque(ci)) return;
     csv+='"'+ctrl+'"';
     for(let i=0;i<6;i++){
       const d=addDays(currentMonday,i);
@@ -673,6 +686,7 @@ function buildTexte(){
   t+='═══════════════════════════════════\n\n';
 
   CONTROLEURS.forEach((ctrl,ci)=>{
+    if(estMasque(ci)) return;
     let lignes=[];
     for(let i=0;i<6;i++){
       const d=addDays(currentMonday,i);
@@ -783,7 +797,8 @@ function genererCanvasWA(cb){
   const mon=currentMonday;
   const wn=getWeekNum(mon);
   const sat=addDays(mon,5);
-  const NB_JOURS=6, COL_NOM=160, COL_CELL=72, ROW_H=40, HEAD_H=56, SUB_H=24, NB_CTRL=CONTROLEURS.length;
+  const VIS=CONTROLEURS.map((ctrl,ci)=>({ctrl,ci})).filter(o=>!estMasque(o.ci));
+  const NB_JOURS=6, COL_NOM=160, COL_CELL=72, ROW_H=40, HEAD_H=56, SUB_H=24, NB_CTRL=VIS.length;
   const W=COL_NOM+NB_JOURS*COL_CELL*2+2;
   const LIGNES_H=Math.ceil(NB_CTRL/2)*26+50;
   const H=HEAD_H+SUB_H+NB_CTRL*ROW_H+40+36+LIGNES_H;
@@ -815,9 +830,10 @@ function genererCanvasWA(cb){
   ctx.fillStyle='#fff'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
   ctx.fillText('CONTRÔLEUR',COL_NOM/2,TOP+HEAD_H/2+4);
 
-  CONTROLEURS.forEach((ctrl,ci)=>{
-    const y=TOP+HEAD_H+SUB_H+ci*ROW_H;
-    ctx.fillStyle=ci%2===0?'#F8F9FA':'#FFFFFF'; ctx.fillRect(0,y,COL_NOM,ROW_H);
+  VIS.forEach((o,row)=>{
+    const ctrl=o.ctrl, ci=o.ci;
+    const y=TOP+HEAD_H+SUB_H+row*ROW_H;
+    ctx.fillStyle=row%2===0?'#F8F9FA':'#FFFFFF'; ctx.fillRect(0,y,COL_NOM,ROW_H);
     ctx.fillStyle='#1E3A5F'; ctx.font='bold 10px Arial'; ctx.textAlign='left';
     ctx.fillText(ctrl,8,y+ROW_H/2+4);
     for(let i=0;i<NB_JOURS;i++){
@@ -828,7 +844,7 @@ function genererCanvasWA(cb){
         let code=val,heure='';
         if(val&&val.includes('|')){ const p=val.split('|'); code=p[0]; heure=p[1]; }
         const cobj=CODES.find(c=>c.code===code);
-        ctx.fillStyle=cobj?cobj.color:(ci%2===0?'#F8F9FA':'#FFFFFF');
+        ctx.fillStyle=cobj?cobj.color:(row%2===0?'#F8F9FA':'#FFFFFF');
         ctx.fillRect(x,y,COL_CELL,ROW_H);
         if(val){
           ctx.fillStyle=cobj?'#fff':'#1E3A5F';
@@ -876,8 +892,9 @@ function genererCanvasWA(cb){
 
   // Cartes contrôleurs (2 par ligne)
   const cardW=Math.floor((W-16)/2)-4;
-  CONTROLEURS.forEach((ctrl,ci)=>{
-    const col=ci%2; const row=Math.floor(ci/2);
+  VIS.forEach((o,idx)=>{
+    const ctrl=o.ctrl, ci=o.ci;
+    const col=idx%2; const row=Math.floor(idx/2);
     const cx=8+col*(cardW+8); const cy=hY+18+row*26;
     ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(cx,cy,cardW,22);
     ctx.fillStyle='#fff'; ctx.font='9px Arial'; ctx.textAlign='left';
@@ -887,7 +904,7 @@ function genererCanvasWA(cb){
   });
 
   // Total équipe
-  const totalY=hY+18+Math.ceil(CONTROLEURS.length/2)*26+4;
+  const totalY=hY+18+Math.ceil(NB_CTRL/2)*26+4;
   ctx.fillStyle='#FFD60A'; ctx.fillRect(8,totalY,W-16,24);
   ctx.fillStyle='#1E3A5F'; ctx.font='bold 11px Arial'; ctx.textAlign='left';
   ctx.fillText('TOTAL ÉQUIPE',14,totalY+16);
